@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout | CYBERSECURITY STORE</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-top">
+      <h1>CYBERSECURITY STORE CHECKOUT</h1>
+    </div>
+  </header>
+
+  <div class="student-form">
+    <div class="order-summary">
+      <h2>Order Summary</h2>
+      <div id="checkoutItems"></div>
+      <div class="cart-total">
+        Total: GHS <span id="checkoutTotal">0.00</span>
+      </div>
+    </div>
+
+    <form id="paymentForm">
+      <div class="form-group">
+        <input type="text" id="fullName" required placeholder=" ">
+        <label>Full Name</label>
+      </div>
+      <div class="form-group">
+        <input type="text" id="className" required placeholder=" ">
+        <label>Class</label>
+      </div>
+      <div class="form-group">
+        <input type="email" id="email" required placeholder=" ">
+        <label>Email Address</label>
+      </div>
+      <button type="button" class="btn btn-primary" onclick="initiatePayment()">
+        <i class="fas fa-lock"></i>
+        Complete Payment
+        <div id="loadingSpinner" style="display: none;">Processing Payment...</div>
+
+      </button>
+    </form>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // Checkout Page Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+      const storedCart = sessionStorage.getItem('cart');
+      if (!storedCart) window.location.href = 'index.html';
+      
+      const cart = JSON.parse(storedCart);
+      const checkoutItems = document.getElementById('checkoutItems');
+      const checkoutTotal = document.getElementById('checkoutTotal');
+      
+      checkoutItems.innerHTML = cart.items.map(item => `
+        <div class="cart-item">
+          <div class="cart-item-details">
+            <h4>${item.title}</h4>
+            <p>GHS ${item.price.toFixed(2)}</p>
+          </div>
+        </div>
+      `).join('');
+      
+      checkoutTotal.textContent = cart.total.toFixed(2);
+    });
+
+    // Payment Processing
+    const paystackKey = 'pk_live_bbc92f41317a1d5b36ca80fbbdeb30a36ca5f5fe'; // Add your key
+    const formEndpoint = 'https://api.getform.io/...'; // Add your endpoint
+
+    window.initiatePayment = async () => {
+      const name = document.getElementById('fullName').value;
+      const className = document.getElementById('className').value;
+      const email = document.getElementById('email').value;
+      const amount = JSON.parse(sessionStorage.getItem('cart')).total * 100;
+
+      if (!name || !className || !email) return alert('Please fill all fields');
+
+      try {
+        document.getElementById('loadingSpinner').style.display = 'block';
+        
+        const handler = PaystackPop.setup({
+          key: paystackKey,
+          email,
+          amount,
+          currency: 'GHS',
+          ref: `CYBER-${Date.now()}`,
+          callback: (response) => {
+            fetch(formEndpoint, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                name,
+                class: className,
+                email,
+                amount: amount/100,
+                reference: response.reference
+              })
+            });
+            sessionStorage.removeItem('cart');
+            window.location.href = 'index.html';
+          },
+          onClose: () => alert('Payment cancelled')
+        });
+        handler.openIframe();
+      } catch (error) {
+        alert(`Payment failed: ${error.message}`);
+      } finally {
+        document.getElementById('loadingSpinner').style.display = 'none';
+      }
+    };
+  </script>
+<script>
+  // Checkout Page Initialization
+  document.addEventListener('DOMContentLoaded', () => {
+    const storedCart = sessionStorage.getItem('cart');
+    if (!storedCart) {
+      window.location.href = 'index.html';
+      return;
+    }
+    
+    const cart = JSON.parse(storedCart);
+    if (!cart || !cart.items || !cart.total) {
+      alert("Your cart is empty!");
+      window.location.href = 'index.html';
+      return;
+    }
+
+    const checkoutItems = document.getElementById('checkoutItems');
+    const checkoutTotal = document.getElementById('checkoutTotal');
+
+    checkoutItems.innerHTML = cart.items.map(item => `
+      <div class="cart-item">
+        <div class="cart-item-details">
+          <h4>${item.title}</h4>
+          <p>GHS ${item.price.toFixed(2)}</p>
+        </div>
+      </div>
+    `).join('');
+
+    checkoutTotal.textContent = cart.total.toFixed(2);
+  });
+
+  // Paystack Payment
+  const paystackKey = 'pk_live_bbc92f41317a1d5b36ca80fbbdeb30a36ca5f5fe'; // Replace with your actual key
+  const formEndpoint = 'https://api.getform.io/...'; // Replace with actual endpoint
+
+  window.initiatePayment = async () => {
+    const name = document.getElementById('fullName').value;
+    const className = document.getElementById('className').value;
+    const email = document.getElementById('email').value;
+    const storedCart = sessionStorage.getItem('cart');
+    
+    if (!storedCart) {
+      alert("Cart is empty!");
+      window.location.href = 'index.html';
+      return;
+    }
+    
+    const cart = JSON.parse(storedCart);
+    if (!cart || !cart.total) {
+      alert("Invalid cart data!");
+      return;
+    }
+
+    const amount = cart.total * 100; // Convert to kobo
+
+    if (!name || !className || !email) {
+      alert('Please fill all fields');
+      return;
+    }
+
+    document.getElementById('loadingSpinner').style.display = 'block';
+
+    try {
+      const handler = PaystackPop.setup({
+        key: paystackKey,
+        email,
+        amount,
+        currency: 'GHS',
+        ref: `CYBER-${Date.now()}`,
+        callback: async (response) => {
+          await fetch(formEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name,
+              class: className,
+              email,
+              amount: amount / 100,
+              reference: response.reference
+            })
+          });
+
+          sessionStorage.removeItem('cart');
+          alert('Payment Successful!');
+          window.location.href = 'index.html';
+        },
+        onClose: () => alert('Payment cancelled')
+      });
+      handler.openIframe();
+    } catch (error) {
+      alert(`Payment failed: ${error.message}`);
+    } finally {
+      document.getElementById('loadingSpinner').style.display = 'none';
+    }
+  };
+</script>
+
+</body>
+</html>
